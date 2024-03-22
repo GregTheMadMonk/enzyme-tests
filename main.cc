@@ -7,7 +7,7 @@
 #include <iostream>
 #include <stdexcept>
 
-#include <eigen3/Eigen/Dense>
+#include <Eigen/Dense>
 
 // Enzyme voodoo
 extern int enzyme_allocated
