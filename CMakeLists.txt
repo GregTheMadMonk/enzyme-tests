@@ -14,6 +14,10 @@ add_subdirectory( eigen )
 # can't predict - needs to be rebuilt with the project
 add_subdirectory( Enzyme/enzyme )
 
-add_executable( main main.cc )
-target_link_libraries( main PRIVATE ClangEnzymeFlags Eigen3::Eigen )
-target_compile_features( main PRIVATE cxx_std_20 )
+file( GLOB TESTS tests/*.cc )
+foreach( TEST ${TESTS} )
+    get_filename_component( TEST_NAME ${TEST} NAME_WE )
+    add_executable( ${TEST_NAME} ${TEST} )
+    target_link_libraries( ${TEST_NAME} PRIVATE ClangEnzymeFlags Eigen3::Eigen )
+    target_compile_features( ${TEST_NAME} PRIVATE cxx_std_20 )
+endforeach()
