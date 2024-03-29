@@ -14,7 +14,10 @@ add_subdirectory( eigen )
 # can't predict - needs to be rebuilt with the project
 add_subdirectory( Enzyme/enzyme )
 
+include_directories( include )
+
 file( GLOB TEST_DIRS tests/* )
+set( BIN_DIR ${CMAKE_BINARY_DIR} )
 foreach( TEST_DIR ${TEST_DIRS} )
     if( EXISTS "${TEST_DIR}/CMakeLists.txt" )
         add_subdirectory( "${TEST_DIR}" )
