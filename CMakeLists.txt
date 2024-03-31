@@ -14,6 +14,7 @@ add_subdirectory( eigen )
 # can't predict - needs to be rebuilt with the project
 add_subdirectory( Enzyme/enzyme )
 
+# Local headers
 include_directories( include )
 
 file( GLOB TEST_DIRS tests/* )

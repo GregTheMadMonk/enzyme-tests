@@ -1,0 +1,136 @@
+export module stdm;
+
+import std;
+
+namespace stdr = std::ranges;
+
+namespace stdm {
+
+export
+inline constexpr
+void assert(
+    bool condition,
+    const std::source_location l = std::source_location::current()
+) {
+#ifndef NDEBUG
+    if (!condition) [[unlikely]] {
+        throw std::logic_error{
+            std::format(
+                "Assertion failed at {}:{}",
+                l.file_name(), l.line()
+            )
+        };
+    }
+#endif
+} // <-- void assert()
+
+// Two ranges' dot product
+export
+template <stdr::contiguous_range U, stdr::contiguous_range V>
+[[nodiscard]]
+inline constexpr
+stdr::range_value_t<U> dot(const U& u, const V& v)
+requires
+    std::convertible_to<
+        stdr::range_value_t<V>,
+        stdr::range_value_t<U>
+    >
+{
+    assert(stdr::size(v) == stdr::size(u));
+    stdr::range_value_t<U> acc{};
+    for (auto i = 0uz; i < std::min(u.size(), v.size()); ++i) acc += u[i] * v[i];
+    /* This could be done a million time cleaner, but Enzyme can't compile that:
+    for (auto [ ue, ve ] : std::views::zip(u, v)) acc += ue * ve;
+    */
+    return acc;
+} // <-- dot(u, v)
+
+/**
+ * @brief Matrix-vector product element
+ *
+ * Matrices are ranges where elements are stored line-by-line
+ * (rows are contiguous)
+ */
+export
+template <stdr::contiguous_range M, stdr::contiguous_range V>
+[[nodiscard]]
+inline constexpr
+stdr::range_value_t<M> matvec_element(const M& m, const V& v, std::size_t idx)
+requires
+    std::convertible_to<
+        stdr::range_value_t<V>,
+        stdr::range_value_t<M>
+    >
+{
+    assert(stdr::size(m) % stdr::size(v) == 0);
+    const std::size_t v_size = stdr::size(v);
+
+    stdr::range_value_t<M> ret{};
+    for (auto j = 0uz; j < v_size; ++j) {
+        ret += m[idx * v_size + j] * v[j];
+    }
+    return ret;
+} // <-- matvec(m, v)
+
+/**
+ * @brief Matrix-vector product
+ *
+ * Matrices are ranges where elements are stored line-by-line
+ * (rows are contiguous)
+ */
+export
+template <stdr::contiguous_range M, stdr::contiguous_range V>
+[[nodiscard]]
+inline constexpr
+std::vector<stdr::range_value_t<M>> matvec(const M& m, const V& v)
+requires
+    std::convertible_to<
+        stdr::range_value_t<V>,
+        stdr::range_value_t<M>
+    >
+{
+    const std::size_t output_size = stdr::size(m) / stdr::size(v);
+    std::vector<stdr::range_value_t<M>> ret(output_size, {});
+    for (auto i = 0uz; i < output_size; ++i) ret[i] = matvec_element(m, v, i);
+    return ret;
+} // <-- matvec(m, v)
+
+export
+template <stdr::contiguous_range V, stdr::contiguous_range M>
+[[nodiscard]]
+inline constexpr
+stdr::range_value_t<V> vecmat_element(const V& v, const M& m, std::size_t idx)
+requires
+    std::convertible_to<
+        stdr::range_value_t<M>,
+        stdr::range_value_t<V>
+    >
+{
+    assert(stdr::size(m) % stdr::size(v) == 0);
+    const std::size_t v_size = stdr::size(v);
+
+    stdr::range_value_t<V> ret{};
+    for (auto j = 0uz; j < v_size; ++j) {
+        ret += m[j * v_size + idx] * v[j];
+    }
+    return ret;
+} // <-- vecmat_element(v, m, idx)
+
+export
+template <stdr::contiguous_range V, stdr::contiguous_range M>
+[[nodiscard]]
+inline constexpr
+std::vector<stdr::range_value_t<V>> vecmat(const V& v, const M& m)
+requires
+    std::convertible_to<
+        stdr::range_value_t<M>,
+        stdr::range_value_t<V>
+    >
+{
+    const std::size_t output_size = stdr::size(m) / stdr::size(v);
+    std::vector<stdr::range_value_t<M>> ret(output_size, {});
+    for (auto i = 0uz; i < output_size; ++i) ret[i] = vecmat_element(v, m, i);
+    return ret;
+} // <-- vecmat(v, m)
+
+} // <-- namespace stdm
