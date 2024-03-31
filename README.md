@@ -18,7 +18,5 @@ MHFEM differentiation with Enzyme.
 
 Uses C++20 modules and some C++23 features. Needs **Ninja**, at least **CMake
 3.28**, and an LLVM build that supports the following features:
-1. Deducing this
-2. Multi-index `operator[]`
-3. C++20 modules support
-4. A standard library implementation that supports `import std` (LLVM 19)
+1. C++20 modules support
+2. A standard library implementation that supports `import std` (LLVM 19)
