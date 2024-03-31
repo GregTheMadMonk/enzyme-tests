@@ -1,0 +1,61 @@
+module;
+
+#include <cstdio> // stderr
+
+export module selftest;
+
+import std;
+
+namespace selftest {
+
+export class test;
+
+inline constinit std::vector<test*> all_tests{};
+
+class test{
+    std::string name;
+    std::function<void()> method;
+
+public:
+    inline
+    test(std::string_view c_name, const std::function<void()>& c_method)
+        : name(c_name)
+        , method(c_method)
+    { all_tests.push_back(this); }
+
+    [[nodiscard]] inline bool run() const {
+        try {
+            std::println("-- Running test `{}`...", this->name);
+            this->method();
+            return true;
+        } catch(const std::exception& e) {
+            std::println(
+                stderr, "-- Test `{}` failed with: {}",
+                this->name, e.what()
+            );
+            return false;
+        }
+    }
+}; // <-- class test
+
+export inline void run_all() {
+    std::vector<test*> failed_tests{};
+    for (auto* t : all_tests) {
+        if (!t->run()) {
+            failed_tests.push_back(t);
+        }
+    }
+
+    std::println(
+        "--------------------------------------------------"
+    );
+    std::println(
+        "-- All {} tests finished, {} failed",
+        all_tests.size(), failed_tests.size()
+    );
+    std::println(
+        "--------------------------------------------------"
+    );
+} // <-- run_all()
+
+} // <-- namespace selftest

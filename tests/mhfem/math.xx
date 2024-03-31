@@ -1,6 +1,7 @@
 export module stdm;
 
 import std;
+import selftest;
 
 namespace stdr = std::ranges;
 
@@ -29,7 +30,6 @@ export
 template <stdr::range T>
 using vector_like = std::vector<stdr::range_value_t<T>>;
 
-/// @brief Two ranges' dot product
 export
 template <stdr::contiguous_range U, stdr::contiguous_range V>
 [[nodiscard]]
@@ -50,12 +50,6 @@ requires
     return acc;
 } // <-- dot(u, v)
 
-/**
- * @brief Matrix-vector product element
- *
- * Matrices are ranges where elements are stored line-by-line
- * (rows are contiguous)
- */
 export
 template <stdr::contiguous_range M, stdr::contiguous_range V>
 [[nodiscard]]
@@ -77,12 +71,30 @@ requires
     return ret;
 } // <-- matvec_element(m, v)
 
-/**
- * @brief Matrix-vector product
- *
- * Matrices are ranges where elements are stored line-by-line
- * (rows are contiguous)
- */
+export
+template <
+    stdr::contiguous_range M,
+    stdr::contiguous_range V,
+    stdr::contiguous_range R
+>
+inline constexpr
+void matvec(const M& m, const V& v, R& out)
+requires requires {
+    std::convertible_to<
+        stdr::range_value_t<M>,
+        stdr::range_value_t<R>
+    >;
+    std::convertible_to<
+        stdr::range_value_t<V>,
+        stdr::range_value_t<R>
+    >;
+} {
+    assert(stdr::size(m) == stdr::size(v) * stdr::size(out));
+    for (auto i = 0uz; i < stdr::size(out); ++i) {
+        out[i] = matvec_element(m, v, i);
+    }
+} // <-- matvec(m, v, out)
+
 export
 template <stdr::contiguous_range M, stdr::contiguous_range V>
 [[nodiscard]]
@@ -94,10 +106,11 @@ requires
         stdr::range_value_t<M>
     >
 {
-    const std::size_t output_size = stdr::size(m) / stdr::size(v);
     using Val = stdr::range_value_t<M>;
-    auto ret = std::make_unique<vector_like<M>>(output_size, Val{});
-    for (auto i = 0uz; i < output_size; ++i) (*ret)[i] = matvec_element(m, v, i);
+    auto ret = std::make_unique<vector_like<M>>(
+        stdr::size(m) / stdr::size(v), Val{}
+    );
+    matvec(m, v, *ret);
     return ret;
 } // <-- matvec(m, v)
 
@@ -123,6 +136,29 @@ requires
 } // <-- vecmat_element(v, m, idx)
 
 export
+template <
+    stdr::contiguous_range V,
+    stdr::contiguous_range M,
+    stdr::contiguous_range R
+> inline constexpr
+void vecmat(const V& v, const M& m, R& out)
+requires requires {
+    std::convertible_to<
+        stdr::range_value_t<M>,
+        stdr::range_value_t<R>
+    >;
+    std::convertible_to<
+        stdr::range_value_t<V>,
+        stdr::range_value_t<R>
+    >;
+} {
+    assert(stdr::size(m) == stdr::size(v) * stdr::size(out));
+    for (auto i = 0uz; i < stdr::size(out); ++i) {
+        out[i] = vecmat_element(v, m, i);
+    }
+} // <-- vecmat(v, m, out)
+
+export
 template <stdr::contiguous_range V, stdr::contiguous_range M>
 [[nodiscard]]
 inline constexpr
@@ -133,10 +169,11 @@ requires
         stdr::range_value_t<V>
     >
 {
-    const std::size_t output_size = stdr::size(m) / stdr::size(v);
     using Val = stdr::range_value_t<V>;
-    auto ret = std::make_unique<vector_like<V>>(output_size, Val{});
-    for (auto i = 0uz; i < output_size; ++i) (*ret)[i] = vecmat_element(v, m, i);
+    auto ret = std::make_unique<vector_like<V>>(
+        stdr::size(m) / stdr::size(v), Val{}
+    );
+    vecmat(v, m, *ret);
     return ret;
 } // <-- vecmat(v, m)
 

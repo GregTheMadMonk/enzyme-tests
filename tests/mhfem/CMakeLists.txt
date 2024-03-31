@@ -14,7 +14,7 @@ target_sources(
     TYPE CXX_MODULES
     FILES ${MHFEM_XX}
 )
-target_link_libraries( mhfem PRIVATE LLDEnzymeFlags )
+target_link_libraries( mhfem PRIVATE ClangEnzymeFlags )
 set_target_properties(
     mhfem PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY ${BIN_DIR}
