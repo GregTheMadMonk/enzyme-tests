@@ -16,7 +16,21 @@ Two translation units + Enzyme during linking (LLDEnzyme).
 ## [mhfem](https://github.com/GregTheMadMonk/enzyme-tests/tree/master/tests/mhfem)
 MHFEM differentiation with Enzyme.
 
-Uses C++20 modules and some C++23 features. Needs **Ninja**, at least **CMake
-3.28**, and an LLVM build that supports the following features:
+Function signature convention:
+1. If a function needs to return a primitive, return it as-is
+2. If a function needs to return a vector, return it via `std::unique_ptr`
+3. Accept primitive arguments as-is (by value)
+4. Accept vector arguments by-reference
+
+If **2** is not followed, Enzyme will fail to differentiate the algorithm.
+It could be replaced with an output parameter, but I don't like those.
+It takes a very long time to differentiate the program this way, and emits a few
+`freeing without malloc ptr` errors, but works :)
+
+This tests uses C++20 modules and some C++23 features. Needs **Ninja**, at least
+**CMake 3.28**, and an LLVM build with the following features:
 1. C++20 modules support
 2. A standard library implementation that supports `import std` (LLVM 19)
+
+I personally used LLVM 19.0.0 fe2119a7b08b6e468b2a67768904ea85b1bf0a45 at the
+time of writing.

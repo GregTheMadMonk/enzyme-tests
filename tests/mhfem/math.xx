@@ -24,7 +24,12 @@ void assert(
 #endif
 } // <-- void assert()
 
-// Two ranges' dot product
+/// @brief Vector type that stores the same value type as range @tpar T
+export
+template <stdr::range T>
+using vector_like = std::vector<stdr::range_value_t<T>>;
+
+/// @brief Two ranges' dot product
 export
 template <stdr::contiguous_range U, stdr::contiguous_range V>
 [[nodiscard]]
@@ -70,7 +75,7 @@ requires
         ret += m[idx * v_size + j] * v[j];
     }
     return ret;
-} // <-- matvec(m, v)
+} // <-- matvec_element(m, v)
 
 /**
  * @brief Matrix-vector product
@@ -82,7 +87,7 @@ export
 template <stdr::contiguous_range M, stdr::contiguous_range V>
 [[nodiscard]]
 inline constexpr
-std::vector<stdr::range_value_t<M>> matvec(const M& m, const V& v)
+std::unique_ptr<vector_like<M>> matvec(const M& m, const V& v)
 requires
     std::convertible_to<
         stdr::range_value_t<V>,
@@ -90,8 +95,9 @@ requires
     >
 {
     const std::size_t output_size = stdr::size(m) / stdr::size(v);
-    std::vector<stdr::range_value_t<M>> ret(output_size, {});
-    for (auto i = 0uz; i < output_size; ++i) ret[i] = matvec_element(m, v, i);
+    using Val = stdr::range_value_t<M>;
+    auto ret = std::make_unique<vector_like<M>>(output_size, Val{});
+    for (auto i = 0uz; i < output_size; ++i) (*ret)[i] = matvec_element(m, v, i);
     return ret;
 } // <-- matvec(m, v)
 
@@ -120,7 +126,7 @@ export
 template <stdr::contiguous_range V, stdr::contiguous_range M>
 [[nodiscard]]
 inline constexpr
-std::vector<stdr::range_value_t<V>> vecmat(const V& v, const M& m)
+std::unique_ptr<vector_like<V>> vecmat(const V& v, const M& m)
 requires
     std::convertible_to<
         stdr::range_value_t<M>,
@@ -128,8 +134,9 @@ requires
     >
 {
     const std::size_t output_size = stdr::size(m) / stdr::size(v);
-    std::vector<stdr::range_value_t<M>> ret(output_size, {});
-    for (auto i = 0uz; i < output_size; ++i) ret[i] = vecmat_element(v, m, i);
+    using Val = stdr::range_value_t<V>;
+    auto ret = std::make_unique<vector_like<V>>(output_size, Val{});
+    for (auto i = 0uz; i < output_size; ++i) (*ret)[i] = vecmat_element(v, m, i);
     return ret;
 } // <-- vecmat(v, m)
 

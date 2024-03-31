@@ -35,8 +35,8 @@ int main() {
         0, 0, 1,
         1, 0, 0
     };
-    std::println("M @ v = {} @ {} = {}", M, v, stdm::matvec(M, v));
-    stdm::assert(stdr::equal(stdm::matvec(M, v), std::vector{ 2, 3, 1 }));
+    std::println("M @ v = {} @ {} = {}", M, v, *stdm::matvec(M, v));
+    stdm::assert(stdr::equal(*stdm::matvec(M, v), std::vector{ 2, 3, 1 }));
 
     decltype(M) dM(M.size());
     for (auto i = 0uz; i < stdr::size(v); ++i) {
@@ -56,8 +56,8 @@ int main() {
 
 
     std::println("Test stdm::vecmat()...");
-    std::println("v.T @ M = {}.T @ {} = {}", v, M, stdm::vecmat(v, M));
-    stdm::assert(stdr::equal(stdm::vecmat(v, M), std::vector{ 3, 1, 2 }));
+    std::println("v.T @ M = {}.T @ {} = {}", v, M, *stdm::vecmat(v, M));
+    stdm::assert(stdr::equal(*stdm::vecmat(v, M), std::vector{ 3, 1, 2 }));
 
     for (auto i = 0uz; i < stdr::size(v); ++i) {
         std::println("Component ${}", i);
@@ -87,11 +87,13 @@ int main() {
     __enzyme_autodiff(+sqlen, enzyme_dup, &v, &dv);
     std::println("d(sqlen)/dv = {}", dv);
     stdm::assert(stdr::equal(dv, std::vector{ 2, 4, 6 }));
+
+
     std::println("Test vector length converter...");
     static constexpr auto len_after =
         [] (const std::vector<float>& m, const std::vector<float>& x) {
             const auto mx = stdm::matvec(m, x);
-            return stdm::dot(mx, mx);
+            return stdm::dot(*mx, *mx);
         };
 
 
@@ -100,13 +102,15 @@ int main() {
         v, M, len_after(M, v), stdm::dot(v, v)
     );
     stdr::fill(dM, 0);
+    stdr::fill(dv, 0);
 
-    /* This differentiation fails!
     __enzyme_autodiff(
         +len_after,
         enzyme_dup, &M, &dM,
-        enzyme_const, &v
+        enzyme_dup, &v, &dv
     );
-    */
+    std::println("d/dM = {}", dM);
+    std::println("d/dv = {}", dv);
+
     return 0;
 }

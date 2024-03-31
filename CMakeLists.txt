@@ -31,5 +31,9 @@ foreach( TEST_DIR ${TEST_DIRS} )
             ${TEST_NAME} PRIVATE ClangEnzymeFlags Eigen3::Eigen
         )
         target_compile_features( ${TEST_NAME} PRIVATE cxx_std_20 )
+        target_compile_options(
+            ${TEST_NAME} PRIVATE
+            -fno-vectorize -fno-slp-vectorize -fno-unroll-loops
+        )
     endif()
 endforeach()
