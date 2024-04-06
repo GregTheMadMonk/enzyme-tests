@@ -1,11 +1,10 @@
-export module stdm;
+export module math:basic_linalg;
 
 import std;
-import selftest;
 
 namespace stdr = std::ranges;
 
-namespace stdm {
+namespace math {
 
 export
 inline constexpr
@@ -177,4 +176,4 @@ requires
     return ret;
 } // <-- vecmat(v, m)
 
-} // <-- namespace stdm
+} // <-- namespace math

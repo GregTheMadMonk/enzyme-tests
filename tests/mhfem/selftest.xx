@@ -1,44 +1,51 @@
-module;
-
-#include <cstdio> // stderr
-
 export module selftest;
 
 import std;
 
 namespace selftest {
 
-export class test;
-
-inline constinit std::vector<test*> all_tests{};
-
-class test{
+export class test{
     std::string name;
     std::function<void()> method;
 
 public:
-    inline
-    test(std::string_view c_name, const std::function<void()>& c_method)
-        : name(c_name)
-        , method(c_method)
-    { all_tests.push_back(this); }
+    test(std::string_view c_name, const std::function<void()>& c_method);
 
-    [[nodiscard]] inline bool run() const {
-        try {
-            std::println("-- Running test `{}`...", this->name);
-            this->method();
-            return true;
-        } catch(const std::exception& e) {
-            std::println(
-                stderr, "-- Test `{}` failed with: {}",
-                this->name, e.what()
-            );
-            return false;
-        }
-    }
+    [[nodiscard]] bool run() const;
 }; // <-- class test
 
-export inline void run_all() {
+export void run_all();
+
+} // <-- namespace selftest
+
+// Implementation
+module : private;
+#include <cstdio> // stderr
+
+static constinit std::vector<selftest::test*> all_tests{};
+
+selftest::test::test(
+    std::string_view c_name, const std::function<void()>& c_method
+)
+    : name(c_name)
+    , method(c_method)
+{ all_tests.push_back(this); }
+
+bool selftest::test::run() const {
+    try {
+        std::println("-- Running test `{}`...", this->name);
+        this->method();
+        return true;
+    } catch(const std::exception& e) {
+        std::println(
+            stderr, "-- Test `{}` failed with: {}",
+            this->name, e.what()
+        );
+        return false;
+    }
+} // <-- selftest::test::run() const
+
+void selftest::run_all() {
     std::vector<test*> failed_tests{};
     for (auto* t : all_tests) {
         if (!t->run()) {
@@ -56,6 +63,4 @@ export inline void run_all() {
     std::println(
         "--------------------------------------------------"
     );
-} // <-- run_all()
-
-} // <-- namespace selftest
+} // <-- selftest::run_all()

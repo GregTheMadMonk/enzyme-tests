@@ -1,7 +1,7 @@
 #pragma once
 
 import std;
-import stdm;
+import math;
 
 import selftest;
 

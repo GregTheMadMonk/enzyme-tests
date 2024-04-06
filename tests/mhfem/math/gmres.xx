@@ -1,0 +1,21 @@
+export module math:gmres;
+
+import :basic_linalg;
+
+import std;
+
+namespace stdr = std::ranges;
+
+namespace math {
+
+export
+template <stdr::contiguous_range M>
+class gmres {
+    vector_like<M> mat;
+
+public:
+    inline constexpr
+    gmres(const M& m) { stdr::copy(m, std::back_inserter(this->mat)); }
+}; // <-- class gmres<M>
+
+} // <-- namespace math
