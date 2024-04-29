@@ -13,18 +13,7 @@
 
 namespace stdf = std::filesystem;
 
-extern "C" int enzyme_allocated
-         , enzyme_const
-         , enzyme_dup
-         , enzyme_duponneed
-         , enzyme_out
-         , enzyme_tape;
-
-template <typename Retval, typename... Args>
-Retval __enzyme_fwddiff(Retval (*)(Args...), auto...);
-
-template <typename Retval, typename... Args>
-Retval __enzyme_autodiff(Retval (*)(Args...), auto...);
+#include <enzyme/enzyme>
 
 #define HAVE_TINYXML2
 #define HAVE_ZLIB
@@ -383,7 +372,7 @@ int main() {
             std::vector<Real> ddir(dir.size());
             std::vector<Real> ddata(domain.getCellData("numbers").size());
 
-            __enzyme_autodiff(
+            __enzyme_autodiff<void>(
                 &pathtrace<Mesh>,
                 enzyme_const, &domain.getMesh(),
                 enzyme_dup, &domain.getCellData("numbers"), &ddata,
