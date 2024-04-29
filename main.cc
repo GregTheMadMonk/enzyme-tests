@@ -1,5 +1,6 @@
 #include <cassert>
 #include <cmath>
+#include <concepts>
 #include <filesystem>
 #include <format>
 #include <iostream>
@@ -42,19 +43,17 @@ bool isZero(Real real, Real tol = std::numeric_limits<Real>::epsilon()) {
     return std::abs(real) <= tol;
 } // <-- isZero()
 
-struct ConfigTagPermissive {};
+template <typename... Topologies>
+struct EnableTopologies {};
 
 namespace TNL::Meshes::BuildConfigTags {
 
 // Enable only 'triangle' topology because compile times are horrible otherwise
-template <typename Topology>
-struct MeshCellTopologyTag<ConfigTagPermissive, Topology> {
-    static constexpr bool enabled = false;
-}; // <-- MeshCellTopology<ConfigTagPermissive<Topology>, Topolgoy>
-template <>
-struct MeshCellTopologyTag<ConfigTagPermissive, Topologies::Triangle> {
-    static constexpr bool enabled = true;
-}; // <-- MeshCellTopology<ConfigTagPermissive<Topology>, Topolgoy>
+template <typename Topology, typename... Topologies>
+struct MeshCellTopologyTag<EnableTopologies<Topologies...>, Topology> {
+    static constexpr bool enabled =
+        (std::same_as<Topologies, Topology> || ...);
+}; // <-- MeshCellTopology<EnableTopologies<Topologies>, Topolgoy>
 
 } // <-- namespace TNL::Meshes::BuildConfigTags
 
@@ -147,7 +146,8 @@ inline bool withMeshFile(
     }; // <-- loader()
 
     using TNL::Devices::Host;
-    return TNL::Meshes::resolveAndLoadMesh<ConfigTagPermissive, Host>(
+    using ConfigTag = EnableTopologies<TNL::Meshes::Topologies::Triangle>;
+    return TNL::Meshes::resolveAndLoadMesh<ConfigTag, Host>(
         load, filename, "auto"
     );
 } // <-- withMeshFile()
@@ -190,9 +190,12 @@ TraceLog<Mesh> traceFrom(
     const auto cells = mesh.template getEntitiesCount<cellDim>();
     const auto edges = mesh.template getEntitiesCount<edgeDim>();
 
-    const auto trace_next = [&] () -> std::optional<Point> {
+    // Cell centers
+    std::vector<std::optional<Point>> centers(cells, std::nullopt);
 
-        std::optional<Point> ret = std::nullopt;
+    const auto trace_next = [&] () {
+        std::optional<Point> point = std::nullopt;
+        std::optional<GI>    cell  = std::nullopt;
         Real dst = std::numeric_limits<Real>::max();
 
         for (GI edgeIdx = 0; edgeIdx < edges; ++edgeIdx) {
@@ -242,89 +245,75 @@ TraceLog<Mesh> traceFrom(
             const Point step = distProj / velProj * vel;
             const auto newDst = (step, step);
             if (newDst < dst) {
-                ret = pos + step;
+                point = pos + step;
                 dst = newDst;
+
+                // Find the cell
+                const auto lCells =
+                    mesh.template getSuperentitiesCount<edgeDim, cellDim>(
+                        edgeIdx
+                    );
+
+                for (LI lCellIdx = 0; lCellIdx < lCells; ++lCellIdx) {
+                    const auto cellIdx =
+                        mesh.template getSuperentityIndex<
+                            edgeDim, cellDim
+                        >(edgeIdx, lCellIdx);
+
+                    if (!centers[cellIdx].has_value()) {
+                        // Find cell center
+                        centers[cellIdx] = [&] () -> Point {
+                            const auto lPoints =
+                                mesh.template getSubentitiesCount<
+                                    cellDim, 0
+                                >(cellIdx);
+
+                            Point p{};
+                            for (LI lpi = 0; lpi < lPoints; ++lpi) {
+                                p += mesh.getPoint(
+                                    mesh.template getSubentityIndex<
+                                        cellDim, 0
+                                    >(cellIdx, lpi)
+                                );
+                            }
+
+                            return p / lPoints;
+                        } (); // <-- center
+                    }
+
+                    const auto& center = *centers[cellIdx];
+
+                    const Point r = p2 - p1;
+                    const Point n{ -r[1], r[0] };
+                    const Point d = pos + step / 2  - p1;
+                    const Point c = center - p1;
+
+                    if ((n, d) * (n, c) > 0) {
+                        cell = cellIdx;
+                        break;
+                    }
+                }
             }
         }
 
-        return ret;
+        return std::tuple{ point, cell };
     }; // <-- trace_next()
 
     TraceLog<Mesh> acc{ { pos }, {} };
 
     while (true) {
         // Trace the next point of intersection with grid edge
-        const auto next = trace_next();
+        const auto [ next, nextCell ] = trace_next();
         if (!next.has_value()) break;
 
         const auto step = *next - pos;
         const auto step_len = std::sqrt((step, step));
 
         // Find the current cell
-        for (GI cellIdx = 0; cellIdx < cells; ++cellIdx) {
-            // Assume convex cell. Compare with center
-            const auto center = [&] () -> Point {
-                const auto lPoints =
-                    mesh.template getSubentitiesCount<
-                        cellDim, 0
-                    >(cellIdx);
-
-                Point p{};
-                for (LI lpi = 0; lpi < lPoints; ++lpi) {
-                    p += mesh.getPoint(
-                        mesh.template getSubentityIndex<cellDim, 0>(
-                            cellIdx, lpi
-                        )
-                    );
-                }
-
-                return p / lPoints;
-            } (); // <-- center
-
-            const auto lEdges =
-                mesh.template getSubentitiesCount<cellDim, edgeDim>(
-                    cellIdx
-                );
-
-            const auto inside = [&] () -> bool {
-                const Point p = pos + step / 2.0f;
-                for (LI lEdgeIdx = 0; lEdgeIdx < lEdges; ++lEdgeIdx) {
-                    const auto edgeIdx =
-                        mesh.template getSubentityIndex<
-                            cellDim, edgeDim
-                        >(cellIdx, lEdgeIdx);
-
-                    const auto p1 = mesh.getPoint(
-                        mesh.template getSubentityIndex<edgeDim, 0>(
-                            edgeIdx, 0
-                        )
-                    );
-                    const auto p2 = mesh.getPoint(
-                        mesh.template getSubentityIndex<edgeDim, 0>(
-                            edgeIdx, 1
-                        )
-                    );
-
-                    const Point r = p2 - p1;
-                    const Point n{ -r[1], r[0] };
-                    const Point d = p  - p1;
-                    const Point c = center - p1;
-
-                    if ((n, d) * (n, c) < 0) return false;
-                }
-
-                return true;
-            } (); // <-- inside
-
-            if (inside) {
-                acc.cells.push_back(cellIdx);
-                break;
-            }
-        }
-
         pos = *next;
         acc.points.push_back(pos);
         acc.steps.push_back(step_len);
+        acc.cells.push_back(*nextCell);
     }
 
     return acc;
