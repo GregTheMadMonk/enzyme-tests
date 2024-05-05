@@ -2,9 +2,15 @@ cmake_minimum_required( VERSION 3.18 )
 
 project( MultiFile LANGUAGES CXX )
 
-add_subdirectory( 3rdparty/Enzyme/enzyme )
+include( CPM.cmake/cmake/CPM.cmake )
+
+CPMAddPackage(
+    GITHUB_REPOSITORY "EnzymeAD/Enzyme"
+    GIT_TAG "main"
+    SOURCE_SUBDIR "enzyme"
+)
 # This doesn't get automaticlly added with LLDEnzymeFlags
-include_directories( 3rdparty/Enzyme/enzyme/include )
+include_directories( "${Enzyme_SOURCE_DIR}/enzyme/include" )
 
 add_executable( out1 src/main.cc src/lib1.cc )
 add_executable( out2 src/main.cc src/lib2.cc )
