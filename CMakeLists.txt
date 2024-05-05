@@ -13,7 +13,7 @@ CPMAddPackage( "gl:tnl-project/tnl#main" )
 CPMAddPackage( "gh:madler/zlib#master" )
 
 execute_process(
-    COMMAND ${CMAKE_COMMAND} -E create_symlink ${CMAKE_SOURCE_DIR}/data.vtu ${CMAKE_BINARY_DIR}/data.vtu
+    COMMAND ${CMAKE_COMMAND} -E create_symlink ${CMAKE_CURRENT_SOURCE_DIR}/data.vtu ${CMAKE_CURRENT_BINARY_DIR}/data.vtu
 )
 
 add_executable( tnl-mesh-test main.cc )

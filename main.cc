@@ -329,9 +329,10 @@ Mesh::RealType pathtrace(
     return acc;
 } // <-- wtrace()
 
-int main() {
+int main(int argc, char** argv) {
+    const std::filesystem::path binary{argv[0]};
     withMeshFile(
-        "data.vtu", { "numbers" },
+        binary.parent_path() / "data.vtu", { "numbers" },
         [] <typename Mesh> (Domain<Mesh>& domain) {
             // Mesh dimension
             constexpr auto cellDim = Mesh::getMeshDimension();
