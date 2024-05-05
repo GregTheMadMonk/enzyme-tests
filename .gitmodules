@@ -1,6 +1,3 @@
-[submodule "3rdparty/tnl"]
-	path = 3rdparty/tnl
-	url = https://gitlab.com/tnl-project/tnl.git
-[submodule "3rdparty/Enzyme"]
-	path = 3rdparty/Enzyme
-	url = https://github.com/EnzymeAD/Enzyme.git
+[submodule "CPM.cmake"]
+	path = CPM.cmake
+	url = https://github.com/cpm-cmake/CPM.cmake.git
