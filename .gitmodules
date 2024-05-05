@@ -1,0 +1,8 @@
+[submodule "tests/tnl-mesh"]
+	path = tests/tnl-mesh
+	url = git@github.com:GregTheMadMonk/enzyme-tests.git
+	branch = tnl-mesh
+[submodule "tests/multifile"]
+	path = tests/multifile
+	url = git@github.com:GregTheMadMonk/enzyme-tests.git
+	branch = multifile
