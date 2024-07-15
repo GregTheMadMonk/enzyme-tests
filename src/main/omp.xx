@@ -5,6 +5,8 @@ export module main:omp;
 module;
 
 #include <cstdint>
+#include <cstdlib>
+#include <iostream>
 #include <random>
 
 #include <benchmark/benchmark.h>
@@ -55,7 +57,10 @@ double quadratic_omp(const aligned::avx2_vector& v, const aligned::avx2_vector& 
     return ret;
 }
 
-constexpr std::size_t N = 250; // My laptop is WEAK
+static const std::size_t N = [] -> std::size_t {
+    const char* custom_size = getenv("VECTOR_SIZE");
+    return (custom_size != nullptr) ? std::stol(custom_size) : 250;
+} ();
 
 template <auto func>
 void quadratic_bench(benchmark::State& state) {
