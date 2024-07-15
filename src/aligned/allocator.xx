@@ -1,0 +1,51 @@
+module;
+
+#include <new>
+#include <limits>
+
+export module aligned:allocator;
+
+namespace aligned {
+
+export
+template <typename T, std::size_t alignBytes = 64>
+class Allocator {
+private:
+    static_assert(
+        alignBytes >= alignof(T),
+        "Minimum alignment requirements not met"
+    );
+
+public:
+    using value_type = T;
+    static constexpr std::align_val_t alignment{ alignBytes };
+
+    template <typename OtherT>
+    struct rebind {
+        using other = Allocator<OtherT, alignBytes>;
+    };
+
+    constexpr Allocator() noexcept = default;
+    constexpr Allocator(const Allocator&) noexcept = default;
+
+    template <typename U>
+    constexpr Allocator(const Allocator<U, alignBytes>&) noexcept {}
+
+    [[nodiscard]]
+    T* allocate(std::size_t num) {
+        if (num > std::numeric_limits<std::size_t>::max() / sizeof(T)) {
+            throw std::bad_array_new_length{};
+        }
+
+        const auto bytes = num * sizeof(T);
+        return reinterpret_cast<T*>(
+            ::operator new[]( bytes, alignment )
+        );
+    }
+
+    void deallocate(T* ptr, [[maybe_unused]] std::size_t num) {
+        ::operator delete[]( ptr, alignment );
+    }
+}; // <-- class Allocator<T, alignBytes>
+
+} // <-- namespace aligned

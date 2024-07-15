@@ -1,0 +1,85 @@
+#ifndef USE_OMP
+export module main:omp;
+
+#else
+module;
+
+#include <cstdint>
+#include <random>
+
+#include <benchmark/benchmark.h>
+
+export module main:omp;
+
+import aligned;
+
+/// v.T @ M @ v
+double quadratic(const aligned::avx2_vector& v, const aligned::avx2_vector& M) {
+    const auto N = v.size();
+
+    double ret = 0;
+
+    for (std::size_t i = 0; i < N; ++i) {
+        for (std::size_t j = 0; j < N; ++j) {
+            ret += v[i] * M[i * N + j] * v[j];
+        }
+    }
+
+    return ret;
+} // <-- quadratic
+
+double quadratic_omp(const aligned::avx2_vector& v, const aligned::avx2_vector& M) {
+    const auto N = v.size();
+
+    double ret = 0;
+
+#if 0
+    #pragma omp parallel for
+    for (std::size_t i = 0; i < N; ++i) {
+        #pragma omp parallel for
+        for (std::size_t j = 0; j < N; ++j) {
+            ret += v[i] * M[i * N + j] * v[j];
+        }
+    }
+#else
+    aligned::avx2_vector interm(N);
+    #pragma omp parallel for
+    for (std::size_t i = 0; i < N; ++i) {
+        for (std::size_t j = 0; j < N; ++j) {
+            interm[i] += M[i * N + j] * v[j];
+        }
+    }
+    for (std::size_t i = 0; i < N; ++i) ret += interm[i];
+#endif
+
+    return ret;
+}
+
+constexpr std::size_t N = 250; // My laptop is WEAK
+
+template <auto func>
+void quadratic_bench(benchmark::State& state) {
+    aligned::avx2_vector v(N);
+    aligned::avx2_vector M(N * N);
+
+    std::uniform_real_distribution<double> rng{ -100.0, 100.0 };
+    std::default_random_engine re;
+
+    for (auto _ : state) {
+        state.PauseTiming();
+        for (std::size_t i = 0; i < N; ++i) {
+            v.at(i) = rng(re);
+            for (std::size_t j = 0; j < N; ++j) {
+                M.at(i * N + j) = rng(re);
+            }
+        }
+        state.ResumeTiming();
+
+        benchmark::DoNotOptimize( func(v, M) );
+    }
+}
+
+BENCHMARK(quadratic_bench<quadratic>);
+BENCHMARK(quadratic_bench<quadratic_omp>);
+
+#endif

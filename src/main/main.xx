@@ -1,0 +1,14 @@
+module;
+
+#include <benchmark/benchmark.h>
+
+export module main;
+
+export import :avx2;
+export import :omp;
+
+static void do_nothing(benchmark::State& state) {
+    for (auto _ : state) ;
+}
+
+BENCHMARK(do_nothing);

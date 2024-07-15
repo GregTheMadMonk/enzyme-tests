@@ -1,0 +1,4 @@
+export module aligned;
+
+export import :allocator;
+export import :types;

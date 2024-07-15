@@ -1,0 +1,4 @@
+export module enzyme;
+
+export extern "C" double __enzyme_autodiff(void*, ...);
+export extern "C" int enzyme_dup, enzyme_const;
