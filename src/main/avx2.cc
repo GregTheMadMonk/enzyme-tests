@@ -1,18 +1,30 @@
-#ifndef USE_AVX2
-export module main:avx2;
-#else
-module;
-
+#ifdef USE_AVX2
 #include <utility>
 
 #include <immintrin.h>
 
-export module main:avx2;
+#include <benchmark/benchmark.h>
 
 import aligned;
 import enzyme;
+import utils;
 
-namespace avx2 {
+double dot(const aligned::avx2_vector& u, const aligned::avx2_vector& v) {
+    const auto sz = u.size();
+    double ret = 0;
+    for (std::size_t i = 0; i < sz; ++i) ret += u[i] * v[i];
+    return ret;
+}
+
+
+auto d_dot(const aligned::avx2_vector& u, const aligned::avx2_vector& v) {
+    aligned::avx2_vector du(u.size(), 0);
+    aligned::avx2_vector dv(v.size(), 0);
+    __enzyme_autodiff(
+        (void*)&dot, enzyme_dup, &u, &du, enzyme_dup, &v, &dv
+    );
+    return std::pair{ du, dv };
+}
 
 /* Horizontal add works within 128-bit lanes. Use scalar ops to add
  * across the boundary. */
@@ -31,8 +43,7 @@ double reduce_vector2(__m256d input) {
   return ((double*)&result)[0];
 }
 
-export
-double dot(const double *a, const double *b, std::size_t N) {
+double dot_avx2_internal(const double *a, const double *b, std::size_t N) {
   __m256d sum_vec = _mm256_set_pd(0.0, 0.0, 0.0, 0.0);
 
   /* Add up partial dot-products in blocks of 256 bits */
@@ -50,10 +61,14 @@ double dot(const double *a, const double *b, std::size_t N) {
     final += a[ii] * b[ii];
 
   return reduce_vector2(sum_vec) + final;
-} // <-- dot()
+} // <-- dot_avx2_internal()
 
-export
-auto d_dot(const aligned::avx2_vector& u, const aligned::avx2_vector& v) {
+double dot_avx2(const aligned::avx2_vector& u, const aligned::avx2_vector& v) {
+    return dot_avx2_internal(u.data(), v.data(), u.size());
+}
+
+#if 0 // This doesn't work at the time!
+auto d_dot_avx2(const aligned::avx2_vector& u, const aligned::avx2_vector& v) {
     aligned::avx2_vector du(u.size(), 0);
     aligned::avx2_vector dv(v.size(), 0);
 
@@ -65,7 +80,27 @@ auto d_dot(const aligned::avx2_vector& u, const aligned::avx2_vector& v) {
     );
 
     return std::pair{ du, dv };
-} // <-- d_dot()
+} // <-- d_dot_avx2()
+#endif
 
-} // <-- namespace avx2
+template <auto func>
+void benchmark_dot(benchmark::State& state) {
+    using utils::vectorSize;
+
+    aligned::avx2_vector v(vectorSize);
+    aligned::avx2_vector u(vectorSize);
+
+    for (auto _ : state) {
+        state.PauseTiming();
+        utils::randomizeRange(v);
+        utils::randomizeRange(u);
+        state.ResumeTiming();
+
+        benchmark::DoNotOptimize( func(u, v) );
+    }
+}
+
+BENCHMARK(dot_bench<dot>);
+BENCHMARK(dot_bench<dot_avx2>);
+
 #endif

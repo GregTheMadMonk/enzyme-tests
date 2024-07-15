@@ -1,22 +1,14 @@
-#ifndef USE_OMP
-export module main:omp;
+#ifdef USE_OMP
 
-#else
-module;
-
-#include <cstdint>
-#include <cstdlib>
 #include <iostream>
-#include <random>
 
 #include <benchmark/benchmark.h>
 
-export module main:omp;
-
 import aligned;
+import utils;
 
 /// v.T @ M @ v
-double quadratic(const aligned::avx2_vector& v, const aligned::avx2_vector& M) {
+double simple(const aligned::avx2_vector& v, const aligned::avx2_vector& M) {
     const auto N = v.size();
 
     double ret = 0;
@@ -30,12 +22,11 @@ double quadratic(const aligned::avx2_vector& v, const aligned::avx2_vector& M) {
     return ret;
 } // <-- quadratic
 
-double quadratic_omp(const aligned::avx2_vector& v, const aligned::avx2_vector& M) {
+double omp_naive(const aligned::avx2_vector& v, const aligned::avx2_vector& M) {
     const auto N = v.size();
 
     double ret = 0;
 
-#if 0
     #pragma omp parallel for
     for (std::size_t i = 0; i < N; ++i) {
         #pragma omp parallel for
@@ -43,7 +34,15 @@ double quadratic_omp(const aligned::avx2_vector& v, const aligned::avx2_vector& 
             ret += v[i] * M[i * N + j] * v[j];
         }
     }
-#else
+
+    return ret;
+}
+
+double omp(const aligned::avx2_vector& v, const aligned::avx2_vector& M) {
+    const auto N = v.size();
+
+    double ret = 0;
+
     aligned::avx2_vector interm(N);
     #pragma omp parallel for
     for (std::size_t i = 0; i < N; ++i) {
@@ -52,39 +51,29 @@ double quadratic_omp(const aligned::avx2_vector& v, const aligned::avx2_vector& 
         }
     }
     for (std::size_t i = 0; i < N; ++i) ret += interm[i];
-#endif
 
     return ret;
 }
 
-static const std::size_t N = [] -> std::size_t {
-    const char* custom_size = getenv("VECTOR_SIZE");
-    return (custom_size != nullptr) ? std::stol(custom_size) : 250;
-} ();
-
 template <auto func>
 void quadratic_bench(benchmark::State& state) {
-    aligned::avx2_vector v(N);
-    aligned::avx2_vector M(N * N);
+    using utils::vectorSize;
 
-    std::uniform_real_distribution<double> rng{ -100.0, 100.0 };
-    std::default_random_engine re;
+    aligned::avx2_vector v(vectorSize);
+    aligned::avx2_vector M(vectorSize * vectorSize);
 
     for (auto _ : state) {
         state.PauseTiming();
-        for (std::size_t i = 0; i < N; ++i) {
-            v.at(i) = rng(re);
-            for (std::size_t j = 0; j < N; ++j) {
-                M.at(i * N + j) = rng(re);
-            }
-        }
+        utils::randomizeRange(v);
+        utils::randomizeRange(M);
         state.ResumeTiming();
 
         benchmark::DoNotOptimize( func(v, M) );
     }
 }
 
-BENCHMARK(quadratic_bench<quadratic>);
-BENCHMARK(quadratic_bench<quadratic_omp>);
+BENCHMARK(quadratic_bench<simple>);
+BENCHMARK(quadratic_bench<omp>);
+BENCHMARK(quadratic_bench<omp_naive>);
 
 #endif

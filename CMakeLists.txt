@@ -27,12 +27,22 @@ target_sources(
     enzyme PUBLIC
     FILE_SET enzyme_mod
     TYPE CXX_MODULES
-    FILES src/enzyme/enzyme.xx
+    FILES modules/enzyme/enzyme.xx
 )
 target_link_libraries( enzyme PUBLIC ClangEnzymeFlags )
-target_compile_features( enzyme PUBLIC cxx_std_20 )
+target_compile_features( enzyme PUBLIC cxx_std_23 )
 
-file( GLOB ALIGNED_XX "src/aligned/*.xx" )
+file( GLOB UTILS_XX "modules/utils/*.xx" )
+add_library( utils STATIC )
+target_sources(
+    utils PUBLIC
+    FILE_SET utils_mod
+    TYPE CXX_MODULES
+    FILES ${UTILS_XX}
+)
+target_compile_features( utils PUBLIC cxx_std_23 )
+
+file( GLOB ALIGNED_XX "modules/aligned/*.xx" )
 add_library( aligned STATIC )
 target_sources(
     aligned PUBLIC
@@ -40,22 +50,21 @@ target_sources(
     TYPE CXX_MODULES
     FILES ${ALIGNED_XX}
 )
-target_compile_features( aligned PUBLIC cxx_std_20 )
+target_compile_features( aligned PUBLIC cxx_std_23 )
 
-file( GLOB_RECURSE MAIN_XX "src/main/*.xx" )
-add_library( main STATIC )
-target_sources(
-    main PUBLIC
-    FILE_SET main_mod
-    TYPE CXX_MODULES
-    FILES ${MAIN_XX}
+file( GLOB_RECURSE MAIN_CC "src/main/*.cc" )
+add_executable( main ${MAIN_CC} )
+target_compile_options(
+    main PRIVATE
+    "-mllvm" "-force-vector-width=8"
 )
-target_compile_features( main PUBLIC cxx_std_20 )
+target_compile_features( main PRIVATE cxx_std_23 )
 target_link_libraries(
-    main
-    PUBLIC WAllExtra
-    PRIVATE enzyme aligned benchmark::benchmark
+    main PRIVATE
+    aligned enzyme utils
+    benchmark::benchmark
 )
+
 if( USE_AVX2 )
     target_compile_definitions( main PUBLIC USE_AVX2 )
     target_compile_options( main PUBLIC "-march=x86-64-v3" )
@@ -67,16 +76,5 @@ if( USE_OMP )
     target_link_libraries( main PUBLIC OpenMP::OpenMP_CXX)
     target_link_libraries( aligned PUBLIC OpenMP::OpenMP_CXX)
     target_link_libraries( enzyme PUBLIC OpenMP::OpenMP_CXX)
+    target_link_libraries( utils PUBLIC OpenMP::OpenMP_CXX )
 endif()
-
-add_executable( test main.cc )
-target_compile_options(
-    test PRIVATE
-    "-mllvm" "-force-vector-width=8"
-)
-target_compile_features( test PRIVATE cxx_std_20 )
-target_link_libraries(
-    test PRIVATE
-    aligned main enzyme
-    benchmark::benchmark
-)

@@ -1,0 +1,28 @@
+module;
+
+#include <cstdint>
+#include <cstdlib>
+#include <string>
+#include <random>
+#include <ranges>
+#include <type_traits>
+
+export module utils;
+
+namespace utils {
+
+export
+inline const std::size_t vectorSize = [] -> std::size_t {
+    const char* custom_size = getenv("VECTOR_SIZE");
+    return (custom_size != nullptr) ? std::stol(custom_size) : 250;
+} (); // <-- vectorSize
+
+export
+inline void randomizeRange(auto& range) {
+    using T = std::remove_cvref_t< decltype(*std::ranges::begin(range)) >;
+    std::uniform_real_distribution<T> rng{ -100.0, 100.0 };
+    std::default_random_engine re;
+    for (auto& v : range) v = rng(re);
+} 
+
+} // <-- namespace utils
