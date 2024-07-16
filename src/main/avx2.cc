@@ -84,7 +84,7 @@ auto d_dot_avx2(const aligned::avx2_vector& u, const aligned::avx2_vector& v) {
 #endif
 
 template <auto func>
-void benchmark_dot(benchmark::State& state) {
+void dot_bench(benchmark::State& state) {
     using utils::vectorSize;
 
     aligned::avx2_vector v(vectorSize);
