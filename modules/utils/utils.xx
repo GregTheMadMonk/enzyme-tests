@@ -22,6 +22,9 @@ inline void randomizeRange(auto& range) {
     using T = std::remove_cvref_t< decltype(*std::ranges::begin(range)) >;
     std::uniform_real_distribution<T> rng{ -100.0, 100.0 };
     std::default_random_engine re;
+#ifdef USE_OMP
+    #pragma omp parallel for
+#endif
     for (auto& v : range) v = rng(re);
 } 
 

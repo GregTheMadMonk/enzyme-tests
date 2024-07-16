@@ -61,13 +61,10 @@ void quadratic_bench(benchmark::State& state) {
 
     aligned::avx2_vector v(vectorSize);
     aligned::avx2_vector M(vectorSize * vectorSize);
+    utils::randomizeRange(v);
+    utils::randomizeRange(M);
 
     for (auto _ : state) {
-        state.PauseTiming();
-        utils::randomizeRange(v);
-        utils::randomizeRange(M);
-        state.ResumeTiming();
-
         benchmark::DoNotOptimize( func(v, M) );
     }
 }

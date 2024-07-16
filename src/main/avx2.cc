@@ -89,13 +89,10 @@ void benchmark_dot(benchmark::State& state) {
 
     aligned::avx2_vector v(vectorSize);
     aligned::avx2_vector u(vectorSize);
+    utils::randomizeRange(v);
+    utils::randomizeRange(u);
 
     for (auto _ : state) {
-        state.PauseTiming();
-        utils::randomizeRange(v);
-        utils::randomizeRange(u);
-        state.ResumeTiming();
-
         benchmark::DoNotOptimize( func(u, v) );
     }
 }

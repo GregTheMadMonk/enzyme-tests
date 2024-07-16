@@ -70,7 +70,7 @@ if( USE_AVX2 )
     target_compile_options( main PUBLIC "-march=x86-64-v3" )
 endif()
 if( USE_OMP )
-    target_compile_definitions( main PUBLIC USE_OMP )
+    add_definitions( -DUSE_OMP )
     find_package( OpenMP REQUIRED )
     # OpenMP is invasive! It needs to be linked to all modules
     target_link_libraries( main PUBLIC OpenMP::OpenMP_CXX)
