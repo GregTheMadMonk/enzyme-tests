@@ -1,0 +1,137 @@
+export module math.gmres;
+
+import std;
+
+import math.blas;
+
+namespace math::gmres {
+
+export
+template <typename Real>
+void solve(
+    std::size_t n,
+    const Real* A, const Real* b, Real* x
+) {
+    static constexpr Real zero{};
+    static constexpr Real one{1};
+
+    std::size_t m = 3; // TODO: max_iterations
+
+    // L2 vector norm
+    static constexpr auto norm = [] (const Real* v, std::size_t n) {
+        Real ret = zero;
+        for (auto i = 0uz; i < n; ++i) ret += v[i] * v[i];
+        return std::sqrt(ret);
+    }; // <-- norm(v, n)
+
+    // Residual
+    std::vector<Real> r(n);
+
+    // A * x
+    blas::Traits<Real>::gemv(
+        blas::Layout::CblasRowMajor,
+        blas::Transpose::CblasNoTrans,
+        n, n, one, A,
+        n,
+        x, 1,
+        one, r.data(), 1
+    );
+
+    // b - A * x
+    for (auto i = 0uz; i < n; ++i) {
+        r[i] = b[i] - r[i];
+    }
+
+    const auto b_norm = norm(b, n);
+    const auto error = norm(r.data(), n) / b_norm;
+
+    std::vector<Real> sn(m, zero);
+    std::vector<Real> cs(m, zero);
+    std::vector<Real> e1(m + 1, zero);
+    e1[0] = one;
+    std::vector<Real> e(m + 1, zero);
+    e[0] = norm(r.data(), n) / b_norm;
+    const auto r_norm = norm(r.data(), n);
+
+    std::vector<Real> Q(n * (m + 1));
+    for (auto i = 0uz; i < n; ++i) Q[/* 0 * n + */i] = r[i] / r_norm;
+
+    std::vector<Real> beta(e1.size(), zero);
+    beta[0] = r_norm;
+
+    std::vector<Real> H((m + 1) * m);
+
+    const auto arnoldi = [n, m, &Q, &H, A] (std::size_t k) {
+        Real* q = Q.data() + n * (k + 1); // Q(:, k+1)
+        Real* h = H.data() + (m + 1) * k; // H(1:k+1, k)
+
+        blas::Traits<Real>::gemv(
+            blas::Layout::CblasRowMajor,
+            blas::Transpose::CblasNoTrans,
+            n, n, one, A,
+            n,
+            Q.data() + n * k, 1,
+            one, q, 1
+        );
+
+        for (auto i = 0uz; i <= k; ++i) {
+            const Real* Qi = Q.data() + n * i;
+            h[i] = blas::Traits<Real>::dot(n, q, 1, Qi, 1);
+            for (auto j = 0uz; j < n; ++j) q[j] -= h[i] * Qi[j];
+        }
+
+        h[k + 1] = norm(q, n);
+        for (auto i = 0uz; i < n; ++i) q[i] /= h[k + 1];
+    }; // <-- arnoldi(k)
+    const auto apply_givens_rotation = [m, &H, &cs, &sn] (std::size_t k) {
+        Real* h = H.data() + (m + 1) * k;
+        for (auto i = 0uz; i < k; ++i) {
+            const auto temp =  cs[i] * h[i] + sn[i] * h[i + 1];
+            h[i + 1] =        -sn[i] * h[i] + cs[i] * h[i + 1];
+            h[i] = temp;
+        }
+
+        // givens_rotation()
+        const auto t = std::sqrt(h[k] * h[k] + h[k + 1] * h[k + 1]);
+        cs[k] = h[k] / t;
+        sn[k] = h[k + 1] / t;
+
+        h[k] = cs[k] * h[k] + sn[k] * h[k + 1];
+        h[k + 1] = zero;
+    }; // <-- apply_givens_rotation(k)
+
+    std::size_t k;
+    for (k = 0; k < m; ++k) {
+        arnoldi(k);
+        apply_givens_rotation(k);
+        beta[k + 1] = -sn[k] * beta[k];
+        beta[k]     =  cs[k] * beta[k];
+
+        e[k + 1] = std::abs(beta[k + 1]) / b_norm;
+        // std::println("error={}", e[k+1]);
+        if (e[k + 1] <= 1e-7) break;
+    }
+
+    if (k == m) {
+        throw std::runtime_error{ "GMRES did not converge" };
+    }
+
+    std::vector<Real> y(k + 1, zero);
+    for (auto i = 0uz; i < k + 1; ++i) {
+        const auto I = k - i;
+        Real lhs = zero;
+        for (auto j = 0uz; j < i; ++j) {
+            const auto J = k - j;
+            lhs += y[J] * H[I + J * (m + 1)];
+        }
+        y[I] = (beta[I] - lhs) / H[I + I * (m + 1)];
+    }
+
+    for (auto i = 0uz; i < n; ++i) {
+        for (auto j = 0uz; j < k + 1; ++j) {
+            x[i] += Q[i + j * n] * y[j];
+        }
+    }
+} // <-- void solve(n, A, b, x)
+
+} // <-- namespace math::gmres

@@ -1,0 +1,10 @@
+module;
+
+#include <cstdlib>
+
+export module utils.cstd:internal;
+
+export enum class Exit : decltype(EXIT_SUCCESS) {
+    Success = EXIT_SUCCESS,
+    Failure = EXIT_FAILURE,
+}; // <-- enum class Exit

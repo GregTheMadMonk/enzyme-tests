@@ -1,0 +1,29 @@
+module;
+
+#include <cblas.h>
+
+export module math.blas;
+
+import std;
+
+namespace math::blas {
+
+export using Layout    = CBLAS_LAYOUT;
+export using Transpose = CBLAS_TRANSPOSE;
+
+export
+template <typename Real> struct Traits;
+
+export
+template <> struct Traits<float> {
+    static inline constexpr auto gemv = cblas_sgemv;
+    static inline constexpr auto dot  = cblas_sdot;
+}; // <-- struct Traits<float>
+
+export
+template <> struct Traits<double> {
+    static inline constexpr auto gemv = cblas_dgemv;
+    static inline constexpr auto dot  = cblas_ddot;
+}; // <-- struct Traits<float>
+
+} // <-- namespace math::blas

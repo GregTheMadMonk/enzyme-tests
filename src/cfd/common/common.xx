@@ -1,0 +1,29 @@
+export module cfd.common;
+
+import std;
+
+namespace cfd {
+
+export
+template <typename Real>
+struct State {
+    /// @brief Problem solution
+    std::span<Real> solution;
+
+    /// @brief `a` coefficient
+    std::span<Real> a;
+    /// @brief `c` coefficient
+    std::span<Real> c;
+
+    std::span<Real> dirichlet;
+    std::span<int>  dirichletMask;
+    std::span<Real> neumann;
+    std::span<int>  neumannMask;
+
+    /// @brief Simulation time step
+    Real tau;
+    /// @brief Simulation time
+    Real time;
+}; // <-- struct State<Real>
+
+} // <-- namespace cfd

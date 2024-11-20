@@ -1,0 +1,16 @@
+module;
+
+#include <cstdio>
+
+export module utils.cstd;
+
+import std;
+
+export import :internal;
+
+export using ::stdin;
+export using ::stdout;
+export using ::stderr;
+
+export constexpr auto EXIT_SUCCESS = std::to_underlying(Exit::Success);
+export constexpr auto EXIT_FAILURE = std::to_underlying(Exit::Failure);

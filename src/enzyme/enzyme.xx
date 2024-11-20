@@ -1,0 +1,21 @@
+module;
+
+#include <enzyme/enzyme>
+
+export module enzyme;
+
+export using ::__enzyme_autodiff;
+export using ::enzyme_const;
+export using ::enzyme_dup;
+export using ::enzyme_dupnoneed;
+
+namespace enzyme {
+
+export using ::enzyme::autodiff;
+export using ::enzyme::Reverse;
+export using ::enzyme::Duplicated;
+export using ::enzyme::DuplicatedNoNeed;
+export using ::enzyme::Active;
+export using ::enzyme::Const;
+
+} // <-- namespace enzyme

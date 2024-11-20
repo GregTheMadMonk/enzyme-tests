@@ -1,0 +1,43 @@
+export module utils.assert;
+
+import std;
+
+namespace utils::assert {
+
+export inline void always(
+#ifdef __cpp_lib_stacktrace
+    bool condition
+#else // ifdef __cpp_lib_stacktrace
+    bool condition,
+    std::source_location st = std::source_location::current()
+#endif // ifdef __cpp_lib_stacktrace
+) {
+    if (condition) return;
+
+#ifdef __cpp_lib_stacktrace
+    const auto loc = std::to_string(std::stacktrace::current());
+#else // ifdef __cpp_lib_stacktrace
+    const auto loc = std::format("{}:{}", st.file_name(), st.line());
+#endif // ifdef __cpp_lib_stacktrace
+
+    throw std::runtime_error{ std::format("Assertion failed at {}", loc) };
+} // <-- always()
+
+#ifdef NDEBUG
+
+export inline void debug(bool) {}
+
+#else // ifdef NDEBUG
+
+#ifdef __cpp_lib_stacktrace
+export inline void debug(bool condition) { always(condition); }
+#else // ifdef __cpp_lib_stacktrace
+export inline void debug(
+    bool condition,
+    std::source_location st = std::source_location::current()
+) { always(condition, st); }
+#endif // ifdef __cpp_lib_stacktrace
+
+#endif // ifdef NDEBUG
+
+} // <-- namespace utils::assert

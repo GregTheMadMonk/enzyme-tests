@@ -1,0 +1,12 @@
+export module cfd.lmhfe;
+
+import cfd.common;
+
+namespace cfd::lmhfe {
+
+export
+template <typename Real>
+struct LMHFE {
+}; // <-- struct LMHFE<Real>
+
+} // <-- namespace cfd::lmhfe

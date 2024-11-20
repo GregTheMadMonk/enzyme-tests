@@ -1,0 +1,85 @@
+module;
+
+#include <cstdlib> // EXIT_SUCCESS/EXIT_FAILURE
+#include <cstdio>  // stderr
+
+export module utils.selftest;
+
+import utils.assert;
+import std;
+
+namespace utils::selftest {
+
+export class Test;
+
+using BodyF    = std::function<void()>;
+using TestsMap = std::map<std::string, BodyF>;
+
+// Ensure the all_tests variable is initialized before tests start initializing
+constinit std::unique_ptr<TestsMap> all_tests = nullptr;
+
+export class Test {
+public:
+    /**
+     * @brief Declare a unit test
+     *
+     * @param name unit test name
+     * @param body unit test body
+     */
+    Test(const std::string& name, const BodyF& body)
+    {
+        if (all_tests == nullptr) all_tests = std::make_unique<TestsMap>();
+
+        const auto [ it, ret ] = all_tests->emplace(name, body);
+        assert::always(ret);
+        this->test_ref = it;
+    } // <-- Test(name, body)
+
+private:
+    decltype(all_tests)::element_type::iterator test_ref;
+}; // <-- class Test
+
+export int run_tests(const std::string& filter = "") {
+    if (all_tests == nullptr) {
+        std::println("No tests to run");
+        return EXIT_SUCCESS;
+    }
+
+    const auto match_filter = [&filter] (const auto& test) {
+        const auto& name = test.first;
+
+        if (filter.empty()) return true;
+
+        return filter.at(0) == '/' ? name.starts_with(filter)
+                                   : name.contains(filter);
+    }; // <-- match_filter(test)
+
+    auto run_tests = std::views::filter(*all_tests, match_filter);
+
+    std::vector<std::string> failed;
+    for (const auto& [ name, body ] : run_tests) {
+        std::println("RUN {}", name);
+        try {
+            body();
+        } catch (const std::exception& e) {
+            std::println(stderr, "Test failed: exception: \"{}\"", e.what());
+            failed.push_back(name);
+        }
+    }
+
+    if (failed.empty()) {
+        std::println("All tests OK");
+        return EXIT_SUCCESS;
+    } else {
+        std::println(
+            stderr,
+            "Runner finished with {}/{} failed tests:",
+            failed.size(), std::ranges::count_if(run_tests, match_filter)
+        );
+
+        for (const auto& name : failed) std::println(stderr, "    {}", name);
+        return EXIT_FAILURE;
+    }
+} // <-- void run_tests()
+
+} // <-- namespace utils::selftest
