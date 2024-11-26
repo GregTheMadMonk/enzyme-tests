@@ -1,0 +1,35 @@
+export module math.core:compare;
+
+import std;
+
+import :traits;
+
+namespace math {
+
+template <typename T>
+constexpr T default_rtol = 1000 * std::numeric_limits<T>::epsilon();
+
+export
+template <typename Real>
+inline bool close(
+    Real a,
+    Real b,
+    Real rtol = default_rtol<Real>
+) {
+    return std::abs(a - b) / std::abs(std::max(a, b)) <= rtol;
+} // <-- bool close(a, b, tol)
+
+export
+template <vector V, vector_like<V> U>
+inline bool allclose(
+    V&& v,
+    U&& u,
+    RealFor<V> rtol = default_rtol<RealFor<V>>
+) {
+    for (auto [ ve, ue ] : std::views::zip(v, u)) {
+        if (!close(ve, ue, rtol)) return false;
+    }
+    return true;
+} // <-- bool allclose(v, u)
+
+} // <-- namespace math

@@ -11,6 +11,17 @@ namespace math::blas {
 export using Layout    = CBLAS_LAYOUT;
 export using Transpose = CBLAS_TRANSPOSE;
 
+// For me using blas_*axpy routines causes a linker error
+template <typename T>
+inline void axpy_dropin(
+    std::size_t size,
+    T a,
+    const T* x, int incx,
+    T* y, int incy
+) {
+    for (auto i = 0uz; i < size; ++i) *(y + incy * i) += a * *(x + incx * i);
+} // <-- axpy_dropin(size, a, x, incx, y, incy)
+
 export
 template <typename Real> struct Traits;
 
@@ -18,12 +29,26 @@ export
 template <> struct Traits<float> {
     static inline constexpr auto gemv = cblas_sgemv;
     static inline constexpr auto dot  = cblas_sdot;
+    static inline constexpr auto copy = cblas_scopy;
+    static inline constexpr auto nrm2 = cblas_snrm2;
+#ifdef USE_BLAS_AXPY
+    static inline constexpr auto axpy = cblas_saxpy;
+#else
+    static inline constexpr auto axpy = axpy_dropin<float>;
+#endif
 }; // <-- struct Traits<float>
 
 export
 template <> struct Traits<double> {
     static inline constexpr auto gemv = cblas_dgemv;
     static inline constexpr auto dot  = cblas_ddot;
+    static inline constexpr auto copy = cblas_dcopy;
+    static inline constexpr auto nrm2 = cblas_dnrm2;
+#ifdef USE_BLAS_AXPY
+    static inline constexpr auto axpy = cblas_daxpy;
+#else
+    static inline constexpr auto axpy = axpy_dropin<double>;
+#endif
 }; // <-- struct Traits<float>
 
 } // <-- namespace math::blas

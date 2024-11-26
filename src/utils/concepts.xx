@@ -1,0 +1,28 @@
+export module utils.concepts;
+
+import std;
+
+namespace utils {
+
+export
+template <typename T>
+concept pointer = (std::is_pointer_v<T>);
+
+export
+template <typename T>
+concept mut_pointer = pointer<T>
+                   && (!std::is_const_v<std::remove_pointer_t<T>>);
+
+export
+template <typename T, typename U>
+concept pointer_like = pointer<T>
+                    && std::same_as<
+                           std::remove_cv_t<std::remove_pointer_t<T>>,
+                           std::remove_cv_t<std::remove_pointer_t<U>>
+                       >;
+
+export
+template <typename T, typename U>
+concept mut_pointer_like = mut_pointer<T> && pointer_like<T, U>;
+
+} // <-- namespace utils

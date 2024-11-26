@@ -3,58 +3,46 @@ export module math.gmres;
 import std;
 
 import math.blas;
+import math.core;
+import utils.assert;
 
 namespace math::gmres {
 
-export
 template <typename Real>
-void solve(
+inline void solve_impl(
     std::size_t n,
-    const Real* A, const Real* b, Real* x
+    const Real* A, const Real* b, Real* x, std::size_t m
 ) {
     static constexpr Real zero{};
     static constexpr Real one{1};
 
-    std::size_t m = 3; // TODO: max_iterations
-
-    // L2 vector norm
-    static constexpr auto norm = [] (const Real* v, std::size_t n) {
-        Real ret = zero;
-        for (auto i = 0uz; i < n; ++i) ret += v[i] * v[i];
-        return std::sqrt(ret);
-    }; // <-- norm(v, n)
-
     // Residual
     std::vector<Real> r(n);
+    blas::Traits<Real>::copy(n, b, 1, r.data(), 1);
 
-    // A * x
+    // r = b - A * x
     blas::Traits<Real>::gemv(
         blas::Layout::CblasRowMajor,
         blas::Transpose::CblasNoTrans,
-        n, n, one, A,
+        n, n, -one, A,
         n,
         x, 1,
         one, r.data(), 1
     );
 
-    // b - A * x
-    for (auto i = 0uz; i < n; ++i) {
-        r[i] = b[i] - r[i];
-    }
-
-    const auto b_norm = norm(b, n);
-    const auto error = norm(r.data(), n) / b_norm;
+    const auto b_norm = blas::Traits<Real>::nrm2(n, b, 1);
 
     std::vector<Real> sn(m, zero);
     std::vector<Real> cs(m, zero);
     std::vector<Real> e1(m + 1, zero);
     e1[0] = one;
     std::vector<Real> e(m + 1, zero);
-    e[0] = norm(r.data(), n) / b_norm;
-    const auto r_norm = norm(r.data(), n);
+    e[0] = blas::Traits<Real>::nrm2(n, r.data(), 1) / b_norm;
+    const auto r_norm = blas::Traits<Real>::nrm2(n, r.data(), 1);
 
     std::vector<Real> Q(n * (m + 1));
-    for (auto i = 0uz; i < n; ++i) Q[/* 0 * n + */i] = r[i] / r_norm;
+    blas::Traits<Real>::axpy(n, one / r_norm, r.data(), 1, Q.data(), 1);
+
 
     std::vector<Real> beta(e1.size(), zero);
     beta[0] = r_norm;
@@ -80,7 +68,7 @@ void solve(
             for (auto j = 0uz; j < n; ++j) q[j] -= h[i] * Qi[j];
         }
 
-        h[k + 1] = norm(q, n);
+        h[k + 1] = blas::Traits<Real>::nrm2(n, q, 1);
         for (auto i = 0uz; i < n; ++i) q[i] /= h[k + 1];
     }; // <-- arnoldi(k)
     const auto apply_givens_rotation = [m, &H, &cs, &sn] (std::size_t k) {
@@ -132,6 +120,33 @@ void solve(
             x[i] += Q[i + j * n] * y[j];
         }
     }
-} // <-- void solve(n, A, b, x)
+} // <-- void solve_impl(n, A, b, x)
+
+/// @brief Solve Ax = b for x with GMRES
+export
+template <vector V>
+inline
+void solve(
+    V&& A,
+    vector_like<V> auto&& b,
+    mut_vector_like<V> auto&& x,
+    std::size_t max_iterations = 10
+) {
+    utils::assert::debug(A.size() == b.size() * b.size());
+    utils::assert::debug(x.size() == b.size());
+    solve_impl(x.size(), A.data(), b.data(), x.data(), max_iterations);
+} // <-- solve(A, b, x, max_iterations)
+
+export
+template <vector V>
+[[nodiscard]]
+inline
+auto solve(
+    V&& A, vector_like<V> auto&& b, std::size_t max_iterations = 10
+) {
+    std::vector<RealFor<V>> x(b.size());
+    solve(A, b, x, max_iterations);
+    return x;
+} // <-- solve(A, b, max_iterations)
 
 } // <-- namespace math::gmres

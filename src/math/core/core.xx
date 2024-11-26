@@ -1,0 +1,5 @@
+export module math.core;
+
+export import :compare;
+export import :matvec;
+export import :traits;

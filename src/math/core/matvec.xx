@@ -1,0 +1,48 @@
+export module math.core:matvec;
+
+import std;
+
+import math.blas;
+import utils;
+
+import :traits;
+
+namespace assert = utils::assert;
+
+namespace math {
+
+/// @brief b <-- A @ x
+export
+template <vector V>
+inline
+void matvec(V&& A, vector_like<V> auto&& x, mut_vector_like<V> auto&& b) {
+    using Real = RealFor<V>;
+
+    const auto n = b.size();
+    const auto m = x.size();
+    assert::debug(A.size() == n * m);
+
+    static constexpr Real zero{};
+    static constexpr Real one{1};
+
+    blas::Traits<Real>::gemv(
+        blas::Layout::CblasRowMajor,
+        blas::Transpose::CblasNoTrans,
+        m, n, one, A.data(),
+        m,
+        x.data(), 1,
+        zero, b.data(), 1
+    );
+} // <-- void matvec(A, x, b)
+
+export
+template <vector V>
+[[nodiscard]]
+inline
+auto matvec(V&& A, vector_like<V> auto&& x) {
+    std::vector<RealFor<V>> b(A.size() / x.size());
+    matvec(A, x, b);
+    return b;
+} // <-- auto matvec(A, x)
+
+} // <-- namespace math

@@ -1,0 +1,89 @@
+export module math.core:traits;
+
+import std;
+
+namespace math {
+
+template <typename T>
+struct StdVectorTraits {
+    static constexpr bool is_std_vector = false;
+    static constexpr bool mut           = false;
+    using Item = void;
+    using Real = void;
+}; // <-- struct StdVectorTraits<T>
+
+template <typename T>
+struct StdVectorTraits<std::vector<T>> {
+    static constexpr bool is_std_vector = true;
+    static constexpr bool mut           = true;
+    using Item = T;
+    using Real = T;
+}; // <-- struct StdVectorTraits<std::vector<T>>
+
+template <typename T>
+struct StdVectorTraits<const std::vector<T>> {
+    static constexpr bool is_std_vector = true;
+    static constexpr bool mut           = false;
+    using Item = const T;
+    using Real = T;
+}; // <-- struct StdVectorTraits<const std::vector<T>>
+
+template <typename T>
+struct StdSpanTraits {
+    static constexpr bool is_std_span = false;
+    static constexpr bool mut         = false;
+    using Item = void;
+    using Real = void;
+}; // <-- struct StdSpanTraits<T>
+
+template <typename T>
+struct StdSpanTraits<std::span<T>> {
+    static constexpr bool is_std_span = true;
+    static constexpr bool mut         = true;
+    using Item = T;
+    using Real = T;
+}; // <-- struct StdSpanTraits<std::span<T>>
+
+template <typename T>
+struct StdSpanTraits<std::span<const T>> {
+    static constexpr bool is_std_span = true;
+    static constexpr bool mut         = false;
+    using Item = const T;
+    using Real = T;
+}; // <-- struct StdSpanTraits<std::span<const T>>
+
+export
+template <typename T>
+concept vector = (
+    StdVectorTraits<std::remove_reference_t<T>>::is_std_vector
+    || StdSpanTraits<std::remove_cvref_t<T>>::is_std_span
+); // <-- concept vector<T>
+
+export
+template <typename T>
+concept mut_vector = vector<T> && (
+    StdVectorTraits<std::remove_reference_t<T>>::mut
+    || StdSpanTraits<std::remove_cvref_t<T>>::mut
+); // <-- mut_vector<T>
+
+export
+template <vector T>
+using RealFor = std::conditional_t<
+    StdSpanTraits<T>::is_std_span,
+    typename StdSpanTraits<std::remove_cvref_t<T>>::Real,
+    typename StdVectorTraits<std::remove_reference_t<T>>::Real
+>; // <-- using RealFor<T>
+
+export
+template <typename T, typename U>
+concept vector_like = requires {
+    requires vector<T>;
+    requires vector<U>;
+    requires std::same_as<RealFor<T>, RealFor<U>>;
+}; // <-- concept vector_like<T, U>
+
+export
+template <typename T, typename U>
+concept mut_vector_like = vector_like<T, U> && mut_vector<T>;
+
+} // <-- namespace math
