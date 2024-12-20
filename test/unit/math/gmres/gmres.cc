@@ -27,6 +27,15 @@ static const utils::selftest::Test gmres_2x2{
     }
 }; // <-- gmres_2x2
 
+static const utils::selftest::Test gmres_2x2_2{
+    "/math/gmres/gmres_2x2_2", [] {
+        const std::vector<double> A{ 1.0, 3.0, -1.0, 2.0 };
+        const std::vector<double> b{ 1.0, 0.0 };
+        const auto x = math::gmres::solve(A, b);
+        assert::always(math::allclose(x, std::vector{ 0.4, 0.2 }));
+    }
+}; // <-- gmres_2x2_2
+
 static const utils::selftest::Test gmres20x20{
     "/math/gmres/gmres_20x20", [] {
         namespace rng = utils::random::generators;

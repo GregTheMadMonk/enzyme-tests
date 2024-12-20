@@ -130,7 +130,7 @@ void solve(
     V&& A,
     vector_like<V> auto&& b,
     mut_vector_like<V> auto&& x,
-    std::size_t max_iterations = 10
+    std::size_t max_iterations = 15
 ) {
     utils::assert::debug(A.size() == b.size() * b.size());
     utils::assert::debug(x.size() == b.size());
@@ -142,7 +142,7 @@ template <vector V>
 [[nodiscard]]
 inline
 auto solve(
-    V&& A, vector_like<V> auto&& b, std::size_t max_iterations = 10
+    V&& A, vector_like<V> auto&& b, std::size_t max_iterations = 15
 ) {
     std::vector<RealFor<V>> x(b.size());
     solve(A, b, x, max_iterations);

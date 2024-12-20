@@ -19,7 +19,7 @@ set( CMAKE_CXX_MODULE_STD ON )
 set( CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -pedantic" )
 
 if( CMAKE_BUILD_TYPE STREQUAL "Debug" )
-    set( CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=address,undefined" )
+    set( CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DNDEBUG" )
 endif()
 
 include( CPM.cmake/cmake/CPM.cmake )
@@ -67,6 +67,7 @@ add_module_library( cfd )
 target_link_libraries( cfd PRIVATE math utils )
 add_module_library( enzyme )
 target_link_libraries( enzyme PUBLIC LLDEnzymeFlags )
+target_link_options( LLDEnzymeFlags INTERFACE -Wl,-mllvm -Wl,-enzyme-loose-types=1 )
 target_include_directories( enzyme PRIVATE ${Enzyme_SOURCE_DIR}/enzyme/include )
 
 file( GLOB_RECURSE UNIT_TEST_CC "test/unit/*.cc" )

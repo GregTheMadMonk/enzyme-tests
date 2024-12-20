@@ -1,3 +1,5 @@
+#include <fenv.h>
+
 import std;
 import utils.selftest;
 import utils.cstd;
@@ -10,6 +12,8 @@ int main(int argc, char** argv) {
         std::println(stderr, "Usage: {} [filter]", argv[0]);
         return EXIT_FAILURE;
     }
+
+    // feenableexcept(FE_INVALID | FE_OVERFLOW);
 
     utils::selftest::run_tests(argc == 2 ? argv[1] : "");
 
